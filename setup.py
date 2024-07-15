@@ -1,10 +1,12 @@
 import re
-import setuptools
 from datetime import datetime
 from distutils.cmd import Command
 from pathlib import Path
 
-init_file_path = "forecaster/__init__.py"
+import setuptools
+
+
+init_file_path = "SeqSNN/__init__.py"
 
 
 def read(rel_path):
@@ -40,21 +42,22 @@ class BumpDevVersion(Command):
         raw_content = read(init_file_path)
         current_time = datetime.now().strftime("%Y%m%d%H%M%S")
         pattern = r"__version__\s*=\s*(\'|\")([\d\.]+?)(\.(dev|a|b|rc).*?)?(\'|\")"
-        repl = re.sub(pattern, r"__version__ = '\2.dev" + current_time + "'", raw_content)
+        repl = re.sub(
+            pattern, r"__version__ = '\2.dev" + current_time + "'", raw_content
+        )
         write(init_file_path, repl)
         print(f"Version bumped to {get_version(init_file_path)}")
 
 
 def setup():
     setuptools.setup(
-        name="forecaster",
+        name="SeqSNN",
         version=get_version(init_file_path),
-        author="Forecaster team",
-        author_email="forecaster@microsoft.com",
-        description="A toolkit for time-series forecasting tasks",
+        author="SeqSNN team",
+        description="A toolkit for sequence learning using SNNs.",
         long_description=read("README.md"),
         long_description_content_type="text/markdown",
-        url="https://dev.azure.com/MSForecast/_git/Forecaster",
+        url="https://github.com/microsoft/SeqSNN",
         packages=setuptools.find_packages(),
         classifiers=[
             "Programming Language :: Python :: 3",
@@ -74,8 +77,10 @@ def setup():
             "numpy",
             "scikit_learn==1.3",
             "pandas==2.1",
+            "snntorch",
+            "spikingjelly",
         ],
-        extras_require={"dev": ["flake8", "pytest", "pytest-azurepipelines", "pytest-cov", "pylint"]},
+        extras_require={"dev": ["pylint"]},
         cmdclass={"bumpver": BumpDevVersion},
     )
 
