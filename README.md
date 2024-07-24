@@ -3,7 +3,7 @@
 A public framework for time-series forecasting with spiking neural networks (SNNs).
 
 ## Related Papers
-* Efficient and Effective Time-Series Forecasting with Spiking Neural Network, [ICML 2024], (https://arxiv.org/pdf/2402.01533).
+* Efficient and Effective Time-Series Forecasting with Spiking Neural Networks, [ICML 2024], (https://arxiv.org/pdf/2402.01533).
 * Advancing Spiking Neural Networks for Sequential Modeling with Central Pattern Generators, [Arxiv:2405.14362], (https://arxiv.org/pdf/2405.14362).
 
 
@@ -24,7 +24,7 @@ If you would like to make changes and run your own expeirments, use:
 ## Training
 Take the `iSpikformer` model as an example:
 
-`python tsforecast.py exp/forecast/ispikformer/ispikformer_electricity.yml`
+`python entry/tsforecast.py exp/forecast/ispikformer/ispikformer_electricity.yml`
 
 You can change the `yml` configuration files as you want.
 
