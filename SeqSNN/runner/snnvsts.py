@@ -1,11 +1,6 @@
-from typing import List, Tuple, Optional, Union
-from pathlib import Path
-import numpy as np
-
+from typing import Optional
 import torch
-import torch.nn as nn
-
-from .base import RUNNERS, BaseRunner
+from .base import RUNNERS
 from .timeseries import TS
 
 
@@ -45,7 +40,7 @@ class SNNVariateSpecTS(TS):
         self.valid_variates = valid_variates
 
     def forward(self, inputs: torch.Tensor):
-        B, T, C = inputs.size() 
+        B, _, C = inputs.size() 
         # introduced by itransformer
         if self.denormalize:
             means = inputs.mean(1, keepdim=True).detach()
@@ -65,7 +60,8 @@ class SNNVariateSpecTS(TS):
         preds = self.act_out(self.fc_out(out).squeeze(-1)).permute(0, 2, 1) # [B, O, N]
         # print(preds)
         if self.denormalize:
-            # preds = preds * std[:, 0:1, :].repeat(1, self.hyper_paras["out_size"], 1) + means[:, 0:1, :].repeat(1, self.hyper_paras["out_size"], 1)
+            # preds = preds * std[:, 0:1, :].repeat(1, self.hyper_paras["out_size"], 1) + \
+            # means[:, 0:1, :].repeat(1, self.hyper_paras["out_size"], 1)
             preds = preds * (std[:, 0, :].unsqueeze(1).repeat(1, self.hyper_paras["out_size"], 1))
             preds = preds + (means[:, 0, :].unsqueeze(1).repeat(1, self.hyper_paras["out_size"], 1))
         if self.valid_variates is not None:

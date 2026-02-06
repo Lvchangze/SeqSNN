@@ -1,20 +1,12 @@
-import torch
-import torch.nn as nn
-from spikingjelly.activation_based import surrogate, neuron, functional
-from functools import partial
-import collections.abc
-
+import math
 from typing import Optional
-
 from pathlib import Path
+
+import torch
+from torch import nn
 from spikingjelly.activation_based import surrogate, neuron, functional
 
 from ..base import NETWORKS
-import math
-
-__all__ = ['QKFormer_Log']
-
-import torch
 
 tau = 2.0  # beta = 1 - 1/tau
 detach_reset = True
@@ -33,7 +25,6 @@ def create_symmetric_matrix(L):
 
 class ConvPE(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000, num_steps=4):
-
         super().__init__()
         self.T = num_steps
         self.rpe_conv = nn.Conv1d(
@@ -77,15 +68,14 @@ class ConvEncoder(nn.Module):
             ),
             nn.BatchNorm2d(output_size),
         )
-        self.lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
-        
+        self.lif = neuron.LIFNode(tau=tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
+
     def forward(self, inputs: torch.Tensor):
         # inputs: B, L, D
-        inputs = inputs.permute(0, 2, 1).unsqueeze(1) # B, 1, D, L
-        enc = self.encoder(inputs) # B, T, D, L
+        inputs = inputs.permute(0, 2, 1).unsqueeze(1)  # B, 1, D, L
+        enc = self.encoder(inputs)  # B, T, D, L
         enc = enc.permute(1, 0, 2, 3)  # T, B, D, L
-        spks = self.lif(enc) # T, B, D, L
-        spks = spks 
+        spks = self.lif(enc)  # T, B, D, L
         return spks
 
 class Token_QK_Attention(nn.Module):
@@ -200,9 +190,9 @@ class Spiking_Self_Attention(nn.Module):
         sum_q = sum_q.unsqueeze(-1)  # [T, B, D, L, 1]
         sum_k = sum_k.unsqueeze(-2)  # [T, B, D, 1, L]
         # Final attention calculation (mathematically equivalent form)
-        attn = (D_new - sum_q - sum_k + 2 * qk_matmul)  # [T, B, H, L, L]
+        attn = D_new - sum_q - sum_k + 2 * qk_matmul  # [T, B, H, L, L]
 
-        attn = (attn + tmp.cuda() ) * torch.sigmoid(self.scale)
+        attn = (attn + tmp.cuda()) * torch.sigmoid(self.scale)
 
         x = attn @ v  # x_shape: T * B * heads * L * D//heads
 
@@ -218,7 +208,6 @@ class MLP(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None):
         super().__init__()
         out_features = out_features or in_features
-        hidden_features = hidden_features
         self.in_features = in_features
         self.hidden_features = hidden_features
         self.out_features = out_features
@@ -295,7 +284,7 @@ class QKFormer_XNOR_Log(nn.Module):
         
         self.encoder = nn.Linear(input_size, dim)
         self.init_bn = nn.BatchNorm1d(dim)
-        self.init_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
+        self.init_lif = neuron.LIFNode(tau=tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
 
         self.stage1 = nn.ModuleList([TokenSpikingTransformer(
             dim=dim, num_heads=heads, mlp_ratio=4.)
@@ -328,10 +317,10 @@ class QKFormer_XNOR_Log(nn.Module):
         x = x.transpose(-2, -1) # T B L C
         if self.pe_type != "none":
             # print(x.shape)
-            x = self.pe(x) # T B L C
-        T, B, L, C = x.shape
+            x = self.pe(x)  # T B L C
+        T, B, L, _ = x.shape
 
-        x = self.encoder(x.flatten(0, 1)) # TB L C -> # T B L D
+        x = self.encoder(x.flatten(0, 1))  # TB L C -> # T B L D
         x = self.init_bn(x.transpose(-2, -1)).transpose(-2, -1)
         x = x.reshape(T, B, L, -1) # T B L D
 
@@ -344,14 +333,13 @@ class QKFormer_XNOR_Log(nn.Module):
         for blk in self.stage3:
             x = blk(x)
         # T B L D
-        out = x.mean(0) # B L D
-        return out, out.mean(dim=1) # B L D, B D
-    
+        out = x.mean(0)  # B L D
+        return out, out.mean(dim=1)  # B L D, B D
+
     @property
     def output_size(self):
         return self.dim
-    
+
     @property
     def hidden_size(self):
         return self.dim
-
