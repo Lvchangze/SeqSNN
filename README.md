@@ -5,7 +5,7 @@ A public framework for time-series forecasting with spiking neural networks (SNN
 ## Related Papers
 * Efficient and Effective Time-Series Forecasting with Spiking Neural Networks, [ICML 2024], (https://arxiv.org/pdf/2402.01533).
 * Advancing Spiking Neural Networks for Sequential Modeling with Central Pattern Generators, [NeurIPS 2024], (https://arxiv.org/pdf/2405.14362).
-
+* Toward Relative Positional Encoding in Spiking Transformers, [NeurIPS 2025], (https://arxiv.org/pdf/2501.16745).
 
 ## Installation
 To install SeqSNN in a new conda environment:
