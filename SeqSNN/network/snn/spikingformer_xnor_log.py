@@ -105,7 +105,7 @@ class SSA(nn.Module):
         self.last_m = nn.Linear(dim, dim)
         self.last_bn = nn.BatchNorm1d(dim)
 
-    def forward(self, x):  
+    def forward(self, x):
         T, B, L, D = x.shape
         x = self.last_lif(x) # T B L D
 
