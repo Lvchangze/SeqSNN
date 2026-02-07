@@ -57,7 +57,7 @@ class ConvEncoder(nn.Module):
             nn.BatchNorm2d(output_size),
         )
         self.lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
-        
+
     def forward(self, inputs: torch.Tensor):
         # inputs: B, L, D
         inputs = inputs.permute(0, 2, 1).unsqueeze(1) # B, 1, D, L
@@ -77,7 +77,7 @@ class SSA(nn.Module):
         self.scale = nn.Parameter(data=torch.tensor(-4.0), requires_grad=True)
 
         self.last_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
-        
+
         self.q_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
         self.q_m = nn.Linear(dim, dim)
         self.q_bn = nn.BatchNorm1d(dim)
@@ -85,7 +85,7 @@ class SSA(nn.Module):
         self.k_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
         self.k_m = nn.Linear(dim, dim)
         self.k_bn = nn.BatchNorm1d(dim)
-        
+
         self.v_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
         self.v_m = nn.Linear(dim, dim)
         self.v_bn = nn.BatchNorm1d(dim)
@@ -95,7 +95,7 @@ class SSA(nn.Module):
         self.last_m = nn.Linear(dim, dim)
         self.last_bn = nn.BatchNorm1d(dim)
 
-    def forward(self, x):    
+    def forward(self, x):
         T, B, L, D = x.shape
         x = self.last_lif(x) # T B L D
 
@@ -116,7 +116,7 @@ class SSA(nn.Module):
         v = v_m_out.reshape(T, B, L, self.heads, D // self.heads).permute(0, 1, 3, 2, 4).contiguous() # T, B, heads, L, D//heads
 
         # attn = (q @ k.transpose(-2, -1)) * self.qk_scale
-        
+
         # # q and k are spike matrices of 0s and 1s, with shape T, B, heads, L, D//heads
         # attn = torch.sum(1 - (q-k) ** 2, dim=-1) # T, B, heads, L, L
         # attn = attn * torch.sigmoid(self.scale)
@@ -161,12 +161,12 @@ class MLP(nn.Module):
 
     def forward(self, x):
         T, B, L, D = x.shape
-        
+
         x = self.lif1(x) # T B L D
         x = x.flatten(0, 1) # TB L D
         x = self.fc1(x) # TB L H
         x = self.bn1(x.transpose(-1, -2)).transpose(-1, -2).reshape(T, B, L, self.hidden_features).contiguous()
-        
+
         x = self.lif2(x) # T B L H
         x = x.flatten(0, 1) # TB L H
         x = self.fc2(x) # TB L D
@@ -214,7 +214,7 @@ class Spikingformer_XNOR(nn.Module):
         self.num_pe_neuron = num_pe_neuron
         self.temporal_encoder = ConvEncoder(num_steps)
         self.pe = ConvPE(d_model=input_size)
-        
+
         self.encoder = nn.Linear(input_size, dim)
         self.init_bn = nn.BatchNorm1d(dim)
 
@@ -244,7 +244,7 @@ class Spikingformer_XNOR(nn.Module):
             # print(x.shape)
             x = self.pe(x) # T B L C
         T, B, L, _ = x.shape
-        
+
         x = self.encoder(x.flatten(0, 1)) # TB L C -> # T B L D
         x = self.init_bn(x.transpose(-2, -1)).transpose(-2, -1)
         x = x.reshape(T, B, L, -1) # T B L D
@@ -255,7 +255,7 @@ class Spikingformer_XNOR(nn.Module):
             x = blk(x) # T B L D
         out = x.mean(0)
         return out, out.mean(dim=1) # B L D, B D
-    
+
     @property
     def output_size(self):
         return self.dim

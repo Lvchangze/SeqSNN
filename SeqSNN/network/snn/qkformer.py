@@ -268,7 +268,7 @@ class QKFormer(nn.Module):
         self.stage3 = nn.ModuleList([SpikingTransformer(
             dim=dim, num_heads=heads, mlp_ratio=4.)
             for j in range(depths - 2)])
-        
+
         self.apply(self._init_weights)
         functional.set_step_mode(self, "m")
 

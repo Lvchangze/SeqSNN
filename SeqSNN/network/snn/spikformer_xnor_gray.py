@@ -132,7 +132,7 @@ class SSA(nn.Module):
 
         q = generate_gray_code_matrix(q, num_bits=10).unsqueeze(3) # T, B, H, 1, L, (D//H)+bits
         k = generate_gray_code_matrix(k, num_bits=10).unsqueeze(4) # T, B, H, L, 1, (D//H)+bits
-        
+
         # original
         # attn = torch.sum(1 - (q-k) ** 2, dim=-1) # T, B, H, L, L
 
@@ -274,7 +274,7 @@ class Spikformer_XNOR_Gray(nn.Module):
         # print("x.shape: ", x.shape)
         out = x.mean(0)
         return out, out.mean(dim=1) # B L D, B D
-    
+
     @property
     def output_size(self):
         return self.dim

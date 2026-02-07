@@ -225,7 +225,7 @@ class Spikformer_XNOR_Log(nn.Module):
         self.num_pe_neuron = num_pe_neuron
         self.temporal_encoder = ConvEncoder(num_steps)
         self.pe = ConvPE(d_model=input_size)
-        
+
         self.encoder = nn.Linear(input_size, dim)
         self.init_bn = nn.BatchNorm1d(dim)
         self.init_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
@@ -269,7 +269,7 @@ class Spikformer_XNOR_Log(nn.Module):
         # print("x.shape: ", x.shape)
         out = x.mean(0)
         return out, out.mean(dim=1) # B L D, B D
-    
+
     @property
     def output_size(self):
         return self.dim

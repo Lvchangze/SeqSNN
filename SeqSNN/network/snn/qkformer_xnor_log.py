@@ -179,7 +179,7 @@ class Spiking_Self_Attention(nn.Module):
 
         # original
         # attn = torch.sum(1 - (q.unsqueeze(3) - k.unsqueeze(4)) ** 2, dim=-1)
-        
+
         # To save memory
         D_new = q.size(-1)  # Get feature dimension C // num_heads
         sum_q = q.sum(dim=-1)  # Calculate the sum of each query vector [T, B, D, L]
@@ -281,7 +281,7 @@ class QKFormer_XNOR_Log(nn.Module):
         self.pe_type = pe_type
         self.temporal_encoder = ConvEncoder(num_steps)
         self.pe = ConvPE(d_model=input_size)
-        
+
         self.encoder = nn.Linear(input_size, dim)
         self.init_bn = nn.BatchNorm1d(dim)
         self.init_lif = neuron.LIFNode(tau=tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
@@ -297,7 +297,7 @@ class QKFormer_XNOR_Log(nn.Module):
         self.stage3 = nn.ModuleList([SpikingTransformer(
             dim=dim, num_heads=heads, mlp_ratio=4.)
             for j in range(depths - 2)])
-        
+
         self.apply(self._init_weights)
         functional.set_step_mode(self, "m")
 

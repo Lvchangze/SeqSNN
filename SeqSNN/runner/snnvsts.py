@@ -40,7 +40,7 @@ class SNNVariateSpecTS(TS):
         self.valid_variates = valid_variates
 
     def forward(self, inputs: torch.Tensor):
-        B, _, C = inputs.size() 
+        B, _, C = inputs.size()
         # introduced by itransformer
         if self.denormalize:
             means = inputs.mean(1, keepdim=True).detach()

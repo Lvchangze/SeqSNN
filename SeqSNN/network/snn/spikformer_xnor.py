@@ -150,7 +150,7 @@ class SSA(nn.Module):
         sum_q = sum_q.unsqueeze(-1)  # [T, B, D, L, 1]
         sum_k = sum_k.unsqueeze(-2)  # [T, B, D, 1, L]
         # Final attention calculation (mathematically equivalent form)
-        attn = (D_new - sum_q - sum_k + 2 * qk_matmul)  # [T, B, H, L, L]
+        attn = D_new - sum_q - sum_k + 2 * qk_matmul  # [T, B, H, L, L]
 
         attn = (attn - torch.min(attn)) * torch.sigmoid(self.scale)
 

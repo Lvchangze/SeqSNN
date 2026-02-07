@@ -19,7 +19,7 @@ def generate_gray_code_matrix(M, num_bits):
 
     gray_code_matrix = ((gray_codes.unsqueeze(-1) >> torch.arange(num_bits - 1, -1, -1)) & 1).float()
     gray_code_matrix = gray_code_matrix.view(T, 1, 1, L, num_bits)  # [T, 1, 1, L, num_bits]
-    
+
     gray_code_matrix = gray_code_matrix.expand(T, B, H, L, num_bits)
 
     return torch.cat((M, gray_code_matrix.cuda()), dim=-1)
@@ -284,7 +284,7 @@ class QKFormer_XNOR_Gray(nn.Module):
         self.pe_type = pe_type
         self.temporal_encoder = ConvEncoder(num_steps)
         self.pe = ConvPE(d_model=input_size)
-        
+
         self.encoder = nn.Linear(input_size, dim)
         self.init_bn = nn.BatchNorm1d(dim)
         self.init_lif = neuron.LIFNode(tau=tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
@@ -300,7 +300,7 @@ class QKFormer_XNOR_Gray(nn.Module):
         self.stage3 = nn.ModuleList([SpikingTransformer(
             dim=dim, num_heads=heads, mlp_ratio=4.)
             for j in range(depths - 2)])
-        
+
         self.apply(self._init_weights)
         functional.set_step_mode(self, "m")
 
