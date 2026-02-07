@@ -1,11 +1,10 @@
 from typing import Optional
-
+import math
 from pathlib import Path
 import torch
 from torch import nn
 from spikingjelly.activation_based import surrogate, neuron, functional
 from ..base import NETWORKS
-import math
 
 tau = 2.0  # beta = 1 - 1/tau
 detach_reset = True
@@ -75,7 +74,6 @@ class ConvEncoder(nn.Module):
         enc = self.encoder(inputs) # B, T, D, L
         enc = enc.permute(1, 0, 2, 3)  # T, B, D, L
         spks = self.lif(enc) # T, B, D, L
-        spks = spks 
         return spks
 
 class SSA(nn.Module):
@@ -87,9 +85,9 @@ class SSA(nn.Module):
         self.heads = heads
         # self.qk_scale = qk_scale
         self.scale = nn.Parameter(data=torch.tensor(0.0125), requires_grad=True)
-        
+
         self.last_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
-        
+
         self.q_lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
         self.q_m = nn.Linear(dim, dim)
         self.q_bn = nn.BatchNorm1d(dim)
@@ -126,16 +124,16 @@ class SSA(nn.Module):
         v_m_out = self.v_bn(v_m_out.transpose(-1, -2)).transpose(-1, -2).reshape(T, B, L, D).contiguous()
         v_m_out = self.v_lif(v_m_out)
         v = v_m_out.reshape(T, B, L, self.heads, D // self.heads).permute(0, 1, 3, 2, 4).contiguous() # T, B, heads, L, D//heads
-        
+
         # original
         # attn = (q @ k.transpose(-2, -1)) * self.qk_scale
-        
+
         # # q and k are spike matrices of 0s and 1s, with shape T, B, heads, L, D//heads
         # attn = torch.sum(1 - (q-k) ** 2, dim=-1) # T, B, heads, L, L
         # attn = attn * torch.sigmoid(self.scale)
-        
+
         tmp = create_symmetric_matrix(L).unsqueeze(0).unsqueeze(0).unsqueeze(0) # [1, 1, 1, L, L]
-        
+
         # To save memory
         D_new = q.size(-1)  # Get feature dimension C // num_heads
         sum_q = q.sum(dim=-1)  # Calculate the sum of each query vector [T, B, D, L]
@@ -149,8 +147,7 @@ class SSA(nn.Module):
         attn = (D_new - sum_q - sum_k + 2 * qk_matmul)  # [T, B, H, L, L]
         
         attn = (attn + tmp.cuda() ) * self.scale
-        
-        
+
         x = attn @ v  # x_shape: T * B * heads * L * D//heads
         x = x.transpose(2, 3).reshape(T, B, L, D).contiguous()
         x = self.attn_lif(x)
@@ -165,7 +162,6 @@ class MLP(nn.Module):
         super().__init__()
         # self.length = length
         out_features = out_features or in_features
-        hidden_features = hidden_features
         self.in_features = in_features
         self.hidden_features = hidden_features
         self.out_features = out_features
@@ -180,12 +176,12 @@ class MLP(nn.Module):
 
     def forward(self, x):
         T, B, L, D = x.shape
-        
+
         x = self.lif1(x) # T B L D
         x = x.flatten(0, 1) # TB L D
         x = self.fc1(x) # TB L H
         x = self.bn1(x.transpose(-1, -2)).transpose(-1, -2).reshape(T, B, L, self.hidden_features).contiguous()
-        
+
         x = self.lif2(x) # T B L H
         x = x.flatten(0, 1) # TB L H
         x = self.fc2(x) # TB L D
@@ -268,9 +264,9 @@ class Spikingformer_XNOR_Log(nn.Module):
         x = self.init_bn(x.transpose(-2, -1)).transpose(-2, -1)
         x = x.reshape(T, B, L, -1) # T B L D
         
-        # print("x.shape: ", x.shape) 
-        
-        for i, blk in enumerate(self.blocks):
+        # print("x.shape: ", x.shape)
+
+        for blk in self.blocks:
             x = blk(x) # T B L D
         out = x.mean(0)
         return out, out.mean(dim=1) # B L D, B D

@@ -1,11 +1,10 @@
 from typing import Optional
-
+import math
 from pathlib import Path
 import torch
 from torch import nn
 from spikingjelly.activation_based import surrogate, neuron, functional
 from ..base import NETWORKS
-import math
 
 tau = 2.0  # beta = 1 - 1/tau
 detach_reset = True
@@ -69,14 +68,13 @@ class ConvEncoder(nn.Module):
             nn.BatchNorm2d(output_size),
         )
         self.lif = neuron.LIFNode(tau = tau, detach_reset=detach_reset, surrogate_function=surrogate.ATan())
-        
+
     def forward(self, inputs: torch.Tensor):
         # inputs: B, L, D
         inputs = inputs.permute(0, 2, 1).unsqueeze(1) # B, 1, D, L
         enc = self.encoder(inputs) # B, T, D, L
         enc = enc.permute(1, 0, 2, 3)  # T, B, D, L
         spks = self.lif(enc) # T, B, D, L
-        spks = spks 
         return spks
 
 class SSA(nn.Module):
@@ -132,7 +130,7 @@ class SSA(nn.Module):
 
         # original
         # attn = torch.sum(1 - (q.unsqueeze(3) - k.unsqueeze(4)) ** 2, dim=-1)
-        
+
         # To save memory
         D_new = q.size(-1)  # Get feature dimension C // num_heads
         sum_q = q.sum(dim=-1)  # Calculate the sum of each query vector [T, B, D, L]
@@ -143,10 +141,10 @@ class SSA(nn.Module):
         sum_q = sum_q.unsqueeze(-1)  # [T, B, D, L, 1]
         sum_k = sum_k.unsqueeze(-2)  # [T, B, D, 1, L]
         # Final attention calculation (mathematically equivalent form)
-        attn = (D_new - sum_q - sum_k + 2 * qk_matmul)  # [T, B, H, L, L]
+        attn = D_new - sum_q - sum_k + 2 * qk_matmul  # [T, B, H, L, L]
 
-        attn = (attn + tmp.cuda() ) * torch.sigmoid(self.scale)
-        
+        attn = (attn + tmp.cuda()) * torch.sigmoid(self.scale)
+
         x = attn @ v  # x_shape: T * B * heads * L * D//heads
 
         x = x.transpose(2, 3).reshape(T, B, L, D).contiguous()
@@ -162,7 +160,6 @@ class MLP(nn.Module):
         super().__init__()
         # self.length = length
         out_features = out_features or in_features
-        hidden_features = hidden_features
         self.in_features = in_features
         self.hidden_features = hidden_features
         self.out_features = out_features
@@ -205,20 +202,20 @@ class Spikformer_XNOR_Log(nn.Module):
             dim: int,
             d_ff: Optional[int] = None,
             num_pe_neuron: int = 10,
-            pe_type: str="conv",
-            pe_mode: str="concat", # "add" or concat
-            neuron_pe_scale: float=1000.0, # "100" or "1000" or "10000"
-            depths: int = 2, 
-            common_thr: float = 1.0, 
+            pe_type: str = "conv",
+            pe_mode: str = "concat",  # "add" or concat
+            neuron_pe_scale: float = 1000.0,  # "100" or "1000" or "10000"
+            depths: int = 2,
+            common_thr: float = 1.0,
             max_length: int = 5000,
-            num_steps: int = 4, 
-            heads: int =8, 
-            qkv_bias: bool=False, 
+            num_steps: int = 4,
+            heads: int = 8,
+            qkv_bias: bool = False,
             qk_scale: float = 0.125,
             input_size: Optional[int] = None,
             weight_file: Optional[Path] = None
             ):
-        super(Spikformer_XNOR_Log, self).__init__()
+        super().__init__()
         self.dim = dim
         self.d_ff = d_ff or dim * 4
         self.T = num_steps
@@ -236,7 +233,7 @@ class Spikformer_XNOR_Log(nn.Module):
         self.blocks = nn.ModuleList([Block(
             length=max_length, tau=tau, common_thr=common_thr, dim=dim, d_ff=self.d_ff, heads=heads, qkv_bias=qkv_bias, qk_scale=qk_scale
         ) for _ in range(depths)])
-        
+
         self.apply(self._init_weights)
 
         functional.set_step_mode(self, "m")
@@ -258,8 +255,8 @@ class Spikformer_XNOR_Log(nn.Module):
         if self.pe_type != "none":
             # print(x.shape)
             x = self.pe(x) # T B L C
-        T, B, L, C = x.shape
-        
+        T, B, L, _ = x.shape
+
         x = self.encoder(x.flatten(0, 1)) # TB L C -> # T B L D
         x = self.init_bn(x.transpose(-2, -1)).transpose(-2, -1)
         x = x.reshape(T, B, L, -1) # T B L D
@@ -267,7 +264,7 @@ class Spikformer_XNOR_Log(nn.Module):
         x = self.init_lif(x)
         # D = x.shape[-1]
 
-        for i, blk in enumerate(self.blocks):
+        for blk in self.blocks:
             x = blk(x) # T B L D
         # print("x.shape: ", x.shape)
         out = x.mean(0)
@@ -276,7 +273,7 @@ class Spikformer_XNOR_Log(nn.Module):
     @property
     def output_size(self):
         return self.dim
-    
+
     @property
     def hidden_size(self):
         return self.dim
